@@ -1,0 +1,4 @@
+.DS_Store
+
+Satellite/bin/*
+Satellite/lib/*
