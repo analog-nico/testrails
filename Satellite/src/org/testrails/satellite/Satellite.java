@@ -1,0 +1,13 @@
+package org.testrails.satellite;
+
+public class Satellite {
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+
+}
