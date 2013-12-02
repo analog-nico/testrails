@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Testrails</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <!--link rel="stylesheet" href="css/bootstrap-theme.min.css"-->
+        <!-- TODO: Make fonts available locally. -->
+        <link href='http://fonts.googleapis.com/css?family=Raleway:400,200' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="css/main.css">
+        <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        
+        <script type="text/template" id="trs-sim-tmpl-mainview">
+<h1>SensorReading Simulator</h1>
+
+<div class="panel-group" id="trs-eventsim-accordion">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#trs-eventsim-accordion" href="#trs-eventsim-srs">
+          Start SensorReadingSequence
+        </a>
+      </h4>
+    </div>
+    <div id="trs-eventsim-srs" class="panel-collapse collapse">
+      <div class="panel-body">
+        <p>Characteristics: <input type="text" id="trs-eventsim-srs-ckey" /> <input type="text" id="trs-eventsim-srs-cval" />&nbsp; 
+        <span class="trs-eventsim-srs-start">Start</span></p>
+        <div id="trs-eventsim-srs-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#trs-eventsim-accordion" href="#trs-eventsim-collapseTwo">
+          Add SensorReading
+        </a>
+      </h4>
+    </div>
+    <div id="trs-eventsim-collapseTwo" class="panel-collapse collapse">
+      <div class="panel-body">
+        Sequence: <select id="trs-sim-srs-select"></select>&nbsp; 
+        Activity: <select id="trs-sim-sa-select"></select>&nbsp; 
+        <span class="trs-sim-sr-add">Add</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#trs-eventsim-accordion" href="#trs-eventsim-collapseThree">
+          Add SystemActivity
+        </a>
+      </h4>
+    </div>
+    <div id="trs-eventsim-collapseThree" class="panel-collapse collapse">
+      <div class="panel-body">
+        <p>Name: <input type="text" id="trs-sim-sa-name" />&nbsp; 
+        <span class="trs-sim-sa-add">Add</span></p>
+        <div id="trs-eventsim-sa-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+        </script>
+        
+        <script type="text/template" id="trs-sim-tmpl-srslist">
+<% if (sensorReadingSequences.length > 0) { %>
+  <ul class="list-group">
+    <% for ( var i = 0; i < sensorReadingSequences.length; i++ ) { %>
+        <li class="list-group-item">
+          <span class="badge"><%= sensorReadingSequences.at(i).get('sensorReadings') != null ? sensorReadingSequences.at(i).get('sensorReadings').length : 0 %></span>
+          <%= sensorReadingSequences.at(i).getLabel() %>
+        </li>
+    <% } %>
+  </ul>
+<% } %>
+        </script>
+        
+        <script type="text/template" id="trs-sim-tmpl-srssel">
+<% for ( var i = 0; i < sensorReadingSequences.length; i++ ) { %>
+  <option value="<%= sensorReadingSequences.at(i).cid %>"><%= sensorReadingSequences.at(i).getLabel() %></option>
+<% } %>
+        </script>
+        
+        <script type="text/template" id="trs-sim-tmpl-salist">
+<% if (systemActivities.length > 0) { %>
+  <ul class="list-group">
+    <% for ( var i = 0; i < systemActivities.length; i++ ) { %>
+        <li class="list-group-item">
+          <%= systemActivities.at(i).get('name') %>
+        </li>
+    <% } %>
+  </ul>
+<% } %>
+        </script>
+        
+        <script type="text/template" id="trs-sim-tmpl-sasel">
+<% for ( var i = 0; i < systemActivities.length; i++ ) { %>
+  <option value="<%= systemActivities.at(i).cid %>"><%= systemActivities.at(i).get('name') %></option>
+<% } %>
+        </script>
+        
+        <script type="text/template" id="trs-diagram-tmpl-node">
+<div class="trs-diagram-node" id="trs-diagram-node-<%= systemActivityNode.cid %>" style="top:<%= systemActivityNode.get('position').top %>px;left:<%= systemActivityNode.get('position').left %>px;">
+  <p><%= systemActivityNode.get('sensorReadings').at(0).get('forSystemActivity').get('name') %></p>
+</div>
+        </script>
+        
+        <div id="testrails">
+            <div class="trs-base-sidebar">
+            </div>
+            <div class="trs-base-diagram">
+            </div>
+        </div>
+
+        <!-- No CDN is used to allow installations in closed intranets. -->
+        <script src="js/vendor/jquery-1.10.2.min.js"></script>
+        <script src="js/vendor/lodash.underscore-2.2.1.min.js"></script>
+        
+        <script src="js/vendor/backbone.min.js"></script>
+        <script src="js/vendor/backbone.marionette-1.2.1.min.js"></script>
+        
+        <script src="js/vendor/bootstrap.min.js"></script>
+        
+        <script src="js/vendor/snap.svg.min.js"></script>
+        
+        <!--script>
+            var s = Snap(600, 400);
+            
+            var path = s.path("M 10 10 v 80 c 0 22 18 40 40 40 h 200 c 22 0 40 18 40 40 v 100 c 0 22 18 40 40 40 h 40 c 22 0 40 18 40 40 v 40");
+            
+            path.attr({
+                stroke: "#f00",
+                strokeWidth: 6,
+                "fill-opacity": 0
+            });
+            
+            var path2 = s.path("M 10 10 v 200");
+            
+            path2.attr({
+                stroke: "#f00",
+                strokeWidth: 6,
+                "fill-opacity": 0
+            });
+            
+            var circle = s.circle(50, 90, 40);
+            circle.attr({
+                stroke: "#000",
+                strokeWidth: 1,
+                "fill-opacity": 0
+            });
+            
+            /*setTimeout(function () {
+                path.animate({path: "M 120 10 v 80 c 0 22 -18 40 -40 40 h -20 c -22 0 -40 18 -40 40 v 80 c 0 22 18 40 40 40 h 80 c 22 0 40 18 40 40 v 40"}, 1000, mina.easeinout);
+                setTimeout(function () {
+                    path.animate({path: "M 120 10 v 80 c 0 22 0 40 0 40 h 0 c 0 0 0 18 0 40 v 80 c 0 22 18 40 40 40 h 80 c 22 0 40 18 40 40 v 40"}, 1000, mina.easeinout);
+                }, 2000);
+            }, 2000);*/
+        </script-->
+        
+        <script src="js/testrails.js"></script>
+
+    </body>
+</html>

@@ -1,0 +1,35 @@
+.trs-diagram-node {
+    width: 200px;
+    height: 3em * 1.428571429 + 1em;
+    padding: 0.5em;
+    
+    border: 1px solid $text-color;
+    border-radius: 10px;
+    
+    background-color: $background-green;
+    box-shadow: 0 2px 5px 0px $text-color;
+    
+    position: absolute;
+    z-index: 1;
+}
+
+.trs-diagram-node p {
+    text-align: center;
+    word-break: break-all;
+    
+    height: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.trs-diagram-node.trs-highlighted {
+    background: linear-gradient(to bottom, $highlight-color-from 0%, $highlight-color-to 100%);
+}
+
+.trs-diagram-node p {
+    margin: 0;
+}
+
+.trs-diagram-connection {
+    position: absolute;
+}

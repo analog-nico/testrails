@@ -1,0 +1,62 @@
+body {
+    font-family: 'Raleway', sans-serif;
+    font-size: 12pt;
+    color: $text-color;
+    background-color: $background-white;
+}
+
+h1 {
+    font-size: 28pt;
+    color: $heading-color;
+    font-weight: 200;
+}
+
+h2 {
+    font-size: 18pt;
+}
+
+input {
+    color: $text-color;
+    background-color: $background-white;
+}
+
+#testrails {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+
+.trs-base-sidebar {
+    position: relative;
+    float: left;
+    height: 100%;
+    width: 25%;
+    
+    z-index: 1;
+    
+    background-color: $background-white;
+    box-shadow: 10px 0 5px -10px $text-color;
+    border-right: 1px solid #ccc;
+    
+    overflow: scroll;
+}
+
+.trs-base-diagram {
+    position: relative;
+    float: left;
+    height: 100%;
+    width: 75%;
+    
+    background-color: $background-white;
+    background-image: url('../img/base/worn_dots.png');
+    
+    overflow: scroll;
+}
+
+.trs-base-sidebar-container {
+    margin: 1em;
+}
+
+.trs-base-sidebar-container h1 {
+    margin-top: 0;
+}

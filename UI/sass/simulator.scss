@@ -1,0 +1,15 @@
+.trs-eventsim-srs-start, .trs-sim-sa-add, .trs-sim-sr-add {
+    text-decoration: none;
+    cursor: pointer;
+    color: $anchor-color;
+}
+
+.trs-eventsim-srs-start:hover, .trs-sim-sa-add:hover, .trs-sim-sr-add:hover {
+    text-decoration: underline;
+}
+
+#trs-eventsim-accordion .panel-collapse > *:last-child,
+#trs-eventsim-accordion .panel-collapse > *:last-child > *:last-child,
+#trs-eventsim-accordion .panel-collapse > *:last-child > *:last-child > *:last-child {
+    margin-bottom: 0;
+}
