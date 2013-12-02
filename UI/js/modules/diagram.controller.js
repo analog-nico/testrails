@@ -4,12 +4,7 @@ Testrails.module('Diagram.Controller', function (Controller, App, Backbone, Mari
         
         this.listenTo(sensorReadingSequence.get('sensorReadings'), 'add', function (sensorReading, sensorReadingList, options) {
             
-            // Create / Update SensorReading Node as well as the connection -> View
-            // Add SensorReading Node to grid and add / update connections and calculate new coordinates -> Layout
-            // Paint new Node / Connection -> View
-            //   \--> This will automatically move the existing nodes / connections
-            
-            var systemActivityNode = Controller.getSystemActivityNodeForSensorReading(sensorReading, sensorReadingList);
+            var systemActivityNode = getSystemActivityNodeForSensorReading(sensorReading, sensorReadingList);
             App.Diagram.Layout.placeIntoGrid(systemActivityNode);
             App.Diagram.View.refresh();
             
@@ -17,7 +12,7 @@ Testrails.module('Diagram.Controller', function (Controller, App, Backbone, Mari
         
     };
     
-    Controller.getSystemActivityNodeForSensorReading = function (sensorReading, sensorReadingList) {
+    function getSystemActivityNodeForSensorReading(sensorReading, sensorReadingList) {
         
         // Get preceeding SensorReading
         var predecessorSensorReading;
