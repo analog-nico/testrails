@@ -1692,6 +1692,7 @@ Testrails.module('Diagram.Controller', function (Controller, App, Backbone, Mari
     };
     
 });
+
 Testrails.module('Diagram.ScopeFilter', function (ScopeFilter, App, Backbone, Marionette, $, _) {
     
     ScopeFilter.onNewSensorReadingSequence = function (sensorReadingSequence) {
