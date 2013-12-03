@@ -132,7 +132,7 @@ Testrails.module('Model.Definition', function (Definition, App, Backbone, Marion
     
     
     /*
-     *  Provides a difinition / logic for a system activity that may be observed by a sensor of
+     *  Provides a definition / logic for a system activity that may be observed by a sensor of
      *  a satellite.
      *  
      *  It may represent an actitivity like the response of the system under test e.g. that only

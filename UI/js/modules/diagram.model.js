@@ -1,4 +1,4 @@
-Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $, _) {
+var diagramModel = Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $, _) {
     
     Model.findNodeForSystemActivity = function (systemActivity) {
         return Model.systemActivityNodes.find(function (systemActivityNode) {
@@ -6,10 +6,10 @@ Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $,
             });
     };
     
-    Model.addInitializer(function () {
-        Model.systemActivityNodes = new Model.Definition.SystemActivityNodeList();
-        Model.nodeCellGrid = new Model.Definition.NodeCellGrid();
-        Model.emptyLane = new Model.Definition.Connection();
-    });
-    
+});
+
+diagramModel.on("start", function () {
+    diagramModel.systemActivityNodes = new Testrails.Diagram.Model.Definition.SystemActivityNodeList();
+    diagramModel.nodeCellGrid = new Testrails.Diagram.Model.Definition.NodeCellGrid();
+    diagramModel.emptyLane = new Testrails.Diagram.Model.Definition.Connection();
 });

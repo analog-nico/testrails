@@ -13,9 +13,6 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
                 row: -1
             },
             
-            predecessorNodes: null,
-            successorNodes: null,
-            
             incomingConnections: null,
             outgoingConnections: null,
             
@@ -24,11 +21,31 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
         },
         
         initialize: function () {
-            this.set('predecessorNodes', new Definition.SystemActivityNodeList());
-            this.set('successorNodes', new Definition.SystemActivityNodeList());
             this.set('incomingConnections', new Definition.ConnectionList());
             this.set('outgoingConnections', new Definition.ConnectionList());
             this.set('sensorReadings', new App.Model.Definition.SensorReadingList());
+        },
+        
+        getIncomingConnectionFrom: function (systemActivityNode) {
+            return this.get('incomingConnections')
+                .find(function (conn) {
+                    return conn.get('sourceNode') === systemActivityNode
+                });
+        },
+        
+        hasIncomingConnectionFrom: function (systemActivityNode) {
+            return this.getIncomingConnectionFrom(systemActivityNode) !== undefined;
+        },
+        
+        getOutgoingConnectionTo: function (systemActivityNode) {
+            return this.get('outgoingConnections')
+                .find(function (conn) {
+                    return conn.get('targetNode') === systemActivityNode
+                });
+        },
+        
+        hasOutgoingConnectionTo: function (systemActivityNode) {
+            return this.getOutgoingConnectionTo(systemActivityNode) !== undefined;
         }
     });
     
@@ -47,6 +64,15 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
         },
         
         initialize: function () {
+            if (this.get('sourceNode') == null || this.get('targetNode') == 0) return;
+            
+            if (this.get('sourceNode').hasOutgoingConnectionTo(this.get('targetNode')) == false) {
+                this.get('sourceNode').get('outgoingConnections').add(this);
+            }
+            
+            if (this.get('targetNode').hasIncomingConnectionFrom(this.get('sourceNode')) == false) {
+                this.get('targetNode').get('incomingConnections').add(this);
+            }
         },
         
         getFirstHorizonalLaneRow: function () {
@@ -423,6 +449,101 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
     
     Definition.NodeCellGrid = App.Model.Definition.Array.extend({
         model: Definition.NodeCellColumn,
+        
+        placeSystemActivityNode: function (systemActivityNode, column, row) {
+            
+            for ( var i = this.getWidth(); i <= column; i++ ) {
+                this.insertColumn(i);
+            }
+            
+            for ( var i = this.getHeight(); i <= row; i++ ) {
+                this.insertRow(i);
+            }
+            
+            if (this.at(column).at(row).isOccupied() == true) {
+                this.insertColumn(column);
+            }
+            
+            this.at(column).at(row).set('systemActivityNode', systemActivityNode);
+            systemActivityNode.set('gridPosition', { column: column, row: row });
+            
+        },
+        
+        placeConnection: function (connection) {
+            
+            var indexLaneOfFirstHorizontalLine;
+            var gridColumnForVerticalLine;
+            
+            var firstHorizontalLineLength = connection.getFirstHorizontalLineLength();
+            if (firstHorizontalLineLength != 0) {
+                var gridRow = connection.get('sourceNode').get('gridPosition').row + 1;
+                var gridColumnStart = connection.get('sourceNode').get('gridPosition').column;
+                var gridColumnEnd = gridColumnStart + firstHorizontalLineLength;
+                
+                gridColumnForVerticalLine = firstHorizontalLineLength > 0 ? gridColumnEnd - 1 : gridColumnEnd;
+                
+                if (this.getHeight() == gridRow) {
+                    this.insertRow(gridRow);
+                }
+                
+                for ( var x = gridColumnStart; x != gridColumnEnd; firstHorizontalLineLength > 0 ? x++ : x-- ) {
+                    
+                    if (firstHorizontalLineLength > 0) {
+                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToRight(gridRow);
+                        this.at(x).at(gridRow)
+                            .get('connectionsTopToRight')
+                            .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
+                    } else {
+                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToLeft(gridRow);
+                        this.at(x).at(gridRow)
+                            .get('connectionsTopToLeft')
+                            .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
+                    }
+                }
+            }
+            
+            var verticalLineLength = connection.getVerticalLineLength();
+            if (verticalLineLength != 0 && gridColumnForVerticalLine != null) {
+                
+                var indexNewLane = verticalLineLength > 0
+                    ? this.addVerticalLaneToBottom(gridColumnForVerticalLine)
+                    : this.addVerticalLaneToTop(gridColumnForVerticalLine);
+                
+                var gridRowStart = connection.get('sourceNode').get('gridPosition').row;
+                if (verticalLineLength > 0) gridRowStart += 1;
+                
+                for ( var step = 0; step != verticalLineLength; verticalLineLength > 0 ? step++ : step-- ) {
+                    
+                    this.at(gridColumnForVerticalLine).at(gridRowStart + step)
+                        .get(verticalLineLength > 0 ? 'connectionsRightToBottom' : 'connectionsRightToTop')
+                        .replaceIndex(indexNewLane, connection);
+                    
+                }
+            }
+            
+            var secondHorizontalLineLength = connection.getSecondHorizontalLineLength();
+            if (secondHorizontalLineLength != 0) {
+                var gridRow = connection.get('targetNode').get('gridPosition').row;
+                var gridColumn = connection.get('targetNode').get('gridPosition').column;
+                
+                if (secondHorizontalLineLength > 0) {
+                    var indexLane = verticalLineLength != 0
+                        ? this.addHorizontalLaneToRight(gridRow)
+                        : indexLaneOfFirstHorizontalLine;
+                    this.at(gridColumn).at(gridRow)
+                        .get('connectionsTopToRight')
+                        .replaceIndex(indexLane, connection);
+                } else {
+                    var indexLane = verticalLineLength != 0
+                        ? this.addHorizontalLaneToLeft(gridRow)
+                        : indexLaneOfFirstHorizontalLine;
+                    this.at(gridColumn).at(gridRow)
+                        .get('connectionsTopToLeft')
+                        .replaceIndex(indexLane, connection);
+                }
+            }
+            
+        },
         
         getWidth: function () {
             return this.length;

@@ -116,7 +116,7 @@
         
         <script type="text/template" id="trs-diagram-tmpl-node">
 <div class="trs-diagram-node" id="trs-diagram-node-<%= systemActivityNode.cid %>" style="top:<%= systemActivityNode.get('position').top %>px;left:<%= systemActivityNode.get('position').left %>px;">
-  <p><%= systemActivityNode.get('sensorReadings').at(0).get('forSystemActivity').get('name') %></p>
+  <p><%= systemActivityNode.get('systemActivity').get('name') %></p>
 </div>
         </script>
         

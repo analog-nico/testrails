@@ -165,7 +165,7 @@ Testrails.module('Model.Definition', function (Definition, App, Backbone, Marion
     
     
     /*
-     *  Provides a difinition / logic for a system activity that may be observed by a sensor of
+     *  Provides a definition / logic for a system activity that may be observed by a sensor of
      *  a satellite.
      *  
      *  It may represent an actitivity like the response of the system under test e.g. that only
@@ -374,9 +374,6 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
                 row: -1
             },
             
-            predecessorNodes: null,
-            successorNodes: null,
-            
             incomingConnections: null,
             outgoingConnections: null,
             
@@ -385,11 +382,31 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
         },
         
         initialize: function () {
-            this.set('predecessorNodes', new Definition.SystemActivityNodeList());
-            this.set('successorNodes', new Definition.SystemActivityNodeList());
             this.set('incomingConnections', new Definition.ConnectionList());
             this.set('outgoingConnections', new Definition.ConnectionList());
             this.set('sensorReadings', new App.Model.Definition.SensorReadingList());
+        },
+        
+        getIncomingConnectionFrom: function (systemActivityNode) {
+            return this.get('incomingConnections')
+                .find(function (conn) {
+                    return conn.get('sourceNode') === systemActivityNode
+                });
+        },
+        
+        hasIncomingConnectionFrom: function (systemActivityNode) {
+            return this.getIncomingConnectionFrom(systemActivityNode) !== undefined;
+        },
+        
+        getOutgoingConnectionTo: function (systemActivityNode) {
+            return this.get('outgoingConnections')
+                .find(function (conn) {
+                    return conn.get('targetNode') === systemActivityNode
+                });
+        },
+        
+        hasOutgoingConnectionTo: function (systemActivityNode) {
+            return this.getOutgoingConnectionTo(systemActivityNode) !== undefined;
         }
     });
     
@@ -408,6 +425,15 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
         },
         
         initialize: function () {
+            if (this.get('sourceNode') == null || this.get('targetNode') == 0) return;
+            
+            if (this.get('sourceNode').hasOutgoingConnectionTo(this.get('targetNode')) == false) {
+                this.get('sourceNode').get('outgoingConnections').add(this);
+            }
+            
+            if (this.get('targetNode').hasIncomingConnectionFrom(this.get('sourceNode')) == false) {
+                this.get('targetNode').get('incomingConnections').add(this);
+            }
         },
         
         getFirstHorizonalLaneRow: function () {
@@ -785,6 +811,101 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
     Definition.NodeCellGrid = App.Model.Definition.Array.extend({
         model: Definition.NodeCellColumn,
         
+        placeSystemActivityNode: function (systemActivityNode, column, row) {
+            
+            for ( var i = this.getWidth(); i <= column; i++ ) {
+                this.insertColumn(i);
+            }
+            
+            for ( var i = this.getHeight(); i <= row; i++ ) {
+                this.insertRow(i);
+            }
+            
+            if (this.at(column).at(row).isOccupied() == true) {
+                this.insertColumn(column);
+            }
+            
+            this.at(column).at(row).set('systemActivityNode', systemActivityNode);
+            systemActivityNode.set('gridPosition', { column: column, row: row });
+            
+        },
+        
+        placeConnection: function (connection) {
+            
+            var indexLaneOfFirstHorizontalLine;
+            var gridColumnForVerticalLine;
+            
+            var firstHorizontalLineLength = connection.getFirstHorizontalLineLength();
+            if (firstHorizontalLineLength != 0) {
+                var gridRow = connection.get('sourceNode').get('gridPosition').row + 1;
+                var gridColumnStart = connection.get('sourceNode').get('gridPosition').column;
+                var gridColumnEnd = gridColumnStart + firstHorizontalLineLength;
+                
+                gridColumnForVerticalLine = firstHorizontalLineLength > 0 ? gridColumnEnd - 1 : gridColumnEnd;
+                
+                if (this.getHeight() == gridRow) {
+                    this.insertRow(gridRow);
+                }
+                
+                for ( var x = gridColumnStart; x != gridColumnEnd; firstHorizontalLineLength > 0 ? x++ : x-- ) {
+                    
+                    if (firstHorizontalLineLength > 0) {
+                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToRight(gridRow);
+                        this.at(x).at(gridRow)
+                            .get('connectionsTopToRight')
+                            .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
+                    } else {
+                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToLeft(gridRow);
+                        this.at(x).at(gridRow)
+                            .get('connectionsTopToLeft')
+                            .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
+                    }
+                }
+            }
+            
+            var verticalLineLength = connection.getVerticalLineLength();
+            if (verticalLineLength != 0 && gridColumnForVerticalLine != null) {
+                
+                var indexNewLane = verticalLineLength > 0
+                    ? this.addVerticalLaneToBottom(gridColumnForVerticalLine)
+                    : this.addVerticalLaneToTop(gridColumnForVerticalLine);
+                
+                var gridRowStart = connection.get('sourceNode').get('gridPosition').row;
+                if (verticalLineLength > 0) gridRowStart += 1;
+                
+                for ( var step = 0; step != verticalLineLength; verticalLineLength > 0 ? step++ : step-- ) {
+                    
+                    this.at(gridColumnForVerticalLine).at(gridRowStart + step)
+                        .get(verticalLineLength > 0 ? 'connectionsRightToBottom' : 'connectionsRightToTop')
+                        .replaceIndex(indexNewLane, connection);
+                    
+                }
+            }
+            
+            var secondHorizontalLineLength = connection.getSecondHorizontalLineLength();
+            if (secondHorizontalLineLength != 0) {
+                var gridRow = connection.get('targetNode').get('gridPosition').row;
+                var gridColumn = connection.get('targetNode').get('gridPosition').column;
+                
+                if (secondHorizontalLineLength > 0) {
+                    var indexLane = verticalLineLength != 0
+                        ? this.addHorizontalLaneToRight(gridRow)
+                        : indexLaneOfFirstHorizontalLine;
+                    this.at(gridColumn).at(gridRow)
+                        .get('connectionsTopToRight')
+                        .replaceIndex(indexLane, connection);
+                } else {
+                    var indexLane = verticalLineLength != 0
+                        ? this.addHorizontalLaneToLeft(gridRow)
+                        : indexLaneOfFirstHorizontalLine;
+                    this.at(gridColumn).at(gridRow)
+                        .get('connectionsTopToLeft')
+                        .replaceIndex(indexLane, connection);
+                }
+            }
+            
+        },
+        
         getWidth: function () {
             return this.length;
         },
@@ -1090,7 +1211,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
     });
     
 });
-Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $, _) {
+var diagramModel = Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $, _) {
     
     Model.findNodeForSystemActivity = function (systemActivity) {
         return Model.systemActivityNodes.find(function (systemActivityNode) {
@@ -1098,12 +1219,12 @@ Testrails.module('Diagram.Model', function (Model, App, Backbone, Marionette, $,
             });
     };
     
-    Model.addInitializer(function () {
-        Model.systemActivityNodes = new Model.Definition.SystemActivityNodeList();
-        Model.nodeCellGrid = new Model.Definition.NodeCellGrid();
-        Model.emptyLane = new Model.Definition.Connection();
-    });
-    
+});
+
+diagramModel.on("start", function () {
+    diagramModel.systemActivityNodes = new Testrails.Diagram.Model.Definition.SystemActivityNodeList();
+    diagramModel.nodeCellGrid = new Testrails.Diagram.Model.Definition.NodeCellGrid();
+    diagramModel.emptyLane = new Testrails.Diagram.Model.Definition.Connection();
 });
 Testrails.module('Diagram.Layout', function (Layout, App, Backbone, Marionette, $, _) {
     
@@ -1112,118 +1233,29 @@ Testrails.module('Diagram.Layout', function (Layout, App, Backbone, Marionette, 
         if (systemActivityNode.get('position').left == -1 && systemActivityNode.get('position').top == -1) {
             // SystemActivityNode was newly created and must be inserted into the grid
             
-            if (systemActivityNode.get('predecessorNodes').length == 0) {
+            if (systemActivityNode.get('incomingConnections').length == 0) {
                 // This is the first node of a SensorReadingSequence
                 
-                App.Diagram.Model.nodeCellGrid.insertColumn(0);
-                if (App.Diagram.Model.nodeCellGrid.getHeight() == 0) {
-                    App.Diagram.Model.nodeCellGrid.insertRow(0);
-                }
-                App.Diagram.Model.nodeCellGrid.at(0).at(0).set('systemActivityNode', systemActivityNode);
-                systemActivityNode.set('gridPosition', { column: 0, row: 0 });
+                App.Diagram.Model.nodeCellGrid.placeSystemActivityNode(systemActivityNode, 0, 0);
                 
             } else {
                 
-                var numColumnOfLatestPredecessor = systemActivityNode.get('predecessorNodes').last().get('gridPosition').column;
-                var columnOfLatestPredecessor = App.Diagram.Model.nodeCellGrid.at(numColumnOfLatestPredecessor);
-                var rowOfFreeCell = columnOfLatestPredecessor.getLastOccupiedCell() + 1;
-                rowOfFreeCell = rowOfFreeCell > columnOfLatestPredecessor.getHeight() ? columnOfLatestPredecessor.getHeight() : rowOfFreeCell;
+                var columnOfLatestPredecessor = systemActivityNode.get('incomingConnections').last().get('sourceNode').get('gridPosition').column;
+                var rowOfFreeCell = App.Diagram.Model.nodeCellGrid.at(columnOfLatestPredecessor).getLastOccupiedCell() + 1;
                 
-                if (rowOfFreeCell == columnOfLatestPredecessor.getHeight()) {
-                    App.Diagram.Model.nodeCellGrid.insertRow(rowOfFreeCell);
-                }
+                App.Diagram.Model.nodeCellGrid.placeSystemActivityNode(systemActivityNode, columnOfLatestPredecessor, rowOfFreeCell);
                 
-                columnOfLatestPredecessor.at(rowOfFreeCell).set('systemActivityNode', systemActivityNode);
-                systemActivityNode.set('gridPosition', { column: numColumnOfLatestPredecessor, row: rowOfFreeCell });
-                
-                Layout.placeConnectionIntoGrid(systemActivityNode.get('predecessorNodes').last(), systemActivityNode);
+                App.Diagram.Model.nodeCellGrid.placeConnection(systemActivityNode.get('incomingConnections').last());
                 
             }
             
         } else {
             
-            if (systemActivityNode.get('predecessorNodes').length > 0
+            if (systemActivityNode.get('incomingConnections').length > 0
                     && systemActivityNode.get('incomingConnections').last().get('$el') == null) {
-                Layout.placeConnectionIntoGrid(systemActivityNode.get('predecessorNodes').last(), systemActivityNode);
+                App.Diagram.Model.nodeCellGrid.placeConnection(systemActivityNode.get('incomingConnections').last());
             }
             
-        }
-        
-    };
-    
-    Layout.placeConnectionIntoGrid = function (sourceNode, targetNode) {
-        
-        var connection = targetNode.get('incomingConnections').last();
-        var indexLaneOfFirstHorizontalLine;
-        var gridColumnForVerticalLine;
-        
-        var firstHorizontalLineLength = connection.getFirstHorizontalLineLength();
-        if (firstHorizontalLineLength != 0) {
-            var gridRow = connection.get('sourceNode').get('gridPosition').row + 1;
-            var gridColumnStart = connection.get('sourceNode').get('gridPosition').column;
-            var gridColumnEnd = gridColumnStart + firstHorizontalLineLength;
-            
-            gridColumnForVerticalLine = firstHorizontalLineLength > 0 ? gridColumnEnd - 1 : gridColumnEnd;
-            
-            if (App.Diagram.Model.nodeCellGrid.getHeight() == gridRow) {
-                App.Diagram.Model.nodeCellGrid.insertRow(gridRow);
-            }
-            
-            for ( var x = gridColumnStart; x != gridColumnEnd; firstHorizontalLineLength > 0 ? x++ : x-- ) {
-                
-                if (firstHorizontalLineLength > 0) {
-                    indexLaneOfFirstHorizontalLine = App.Diagram.Model.nodeCellGrid.addHorizontalLaneToRight(gridRow);
-                    App.Diagram.Model.nodeCellGrid.at(x).at(gridRow)
-                        .get('connectionsTopToRight')
-                        .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
-                } else {
-                    indexLaneOfFirstHorizontalLine = App.Diagram.Model.nodeCellGrid.addHorizontalLaneToLeft(gridRow);
-                    App.Diagram.Model.nodeCellGrid.at(x).at(gridRow)
-                        .get('connectionsTopToLeft')
-                        .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
-                }
-            }
-        }
-        
-        var verticalLineLength = connection.getVerticalLineLength();
-        if (verticalLineLength != 0 && gridColumnForVerticalLine != null) {
-            
-            var indexNewLane = verticalLineLength > 0
-                ? App.Diagram.Model.nodeCellGrid.addVerticalLaneToBottom(gridColumnForVerticalLine)
-                : App.Diagram.Model.nodeCellGrid.addVerticalLaneToTop(gridColumnForVerticalLine);
-            
-            var gridRowStart = connection.get('sourceNode').get('gridPosition').row;
-            if (verticalLineLength > 0) gridRowStart += 1;
-            
-            for ( var step = 0; step != verticalLineLength; verticalLineLength > 0 ? step++ : step-- ) {
-                
-                App.Diagram.Model.nodeCellGrid.at(gridColumnForVerticalLine).at(gridRowStart + step)
-                    .get(verticalLineLength > 0 ? 'connectionsRightToBottom' : 'connectionsRightToTop')
-                    .replaceIndex(indexNewLane, connection);
-                
-            }
-        }
-        
-        var secondHorizontalLineLength = connection.getSecondHorizontalLineLength();
-        if (secondHorizontalLineLength != 0) {
-            var gridRow = connection.get('targetNode').get('gridPosition').row;
-            var gridColumn = connection.get('targetNode').get('gridPosition').column;
-            
-            if (secondHorizontalLineLength > 0) {
-                var indexLane = verticalLineLength != 0
-                    ? App.Diagram.Model.nodeCellGrid.addHorizontalLaneToRight(gridRow)
-                    : indexLaneOfFirstHorizontalLine;
-                App.Diagram.Model.nodeCellGrid.at(gridColumn).at(gridRow)
-                    .get('connectionsTopToRight')
-                    .replaceIndex(indexLane, connection);
-            } else {
-                var indexLane = verticalLineLength != 0
-                    ? App.Diagram.Model.nodeCellGrid.addHorizontalLaneToLeft(gridRow)
-                    : indexLaneOfFirstHorizontalLine;
-                App.Diagram.Model.nodeCellGrid.at(gridColumn).at(gridRow)
-                    .get('connectionsTopToLeft')
-                    .replaceIndex(indexLane, connection);
-            }
         }
         
     };
@@ -1670,16 +1702,12 @@ Testrails.module('Diagram.Controller', function (Controller, App, Backbone, Mari
         if (predecessorSensorReading) {
             var systemActivityNodeOfPredecessor = App.Diagram.Model.findNodeForSystemActivity(predecessorSensorReading.get('forSystemActivity'));
             if (systemActivityNodeOfPredecessor
-                    && systemActivityNode.get('predecessorNodes').contains(systemActivityNodeOfPredecessor) == false) {
+                    && systemActivityNodeOfPredecessor.hasOutgoingConnectionTo(systemActivityNode) == false) {
                 
-                systemActivityNode.get('predecessorNodes').add(systemActivityNodeOfPredecessor);
-                systemActivityNodeOfPredecessor.get('successorNodes').add(systemActivityNode);
-                
-                var connection = new App.Diagram.Model.Definition.Connection();
-                connection.set('sourceNode', systemActivityNodeOfPredecessor);
-                connection.set('targetNode', systemActivityNode);
-                systemActivityNodeOfPredecessor.get('outgoingConnections').add(connection);
-                systemActivityNode.get('incomingConnections').add(connection);
+                var connection = new App.Diagram.Model.Definition.Connection({
+                    sourceNode: systemActivityNodeOfPredecessor,
+                    targetNode: systemActivityNode
+                });
             }
         }
         

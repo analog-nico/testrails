@@ -36,16 +36,12 @@ Testrails.module('Diagram.Controller', function (Controller, App, Backbone, Mari
         if (predecessorSensorReading) {
             var systemActivityNodeOfPredecessor = App.Diagram.Model.findNodeForSystemActivity(predecessorSensorReading.get('forSystemActivity'));
             if (systemActivityNodeOfPredecessor
-                    && systemActivityNode.get('predecessorNodes').contains(systemActivityNodeOfPredecessor) == false) {
+                    && systemActivityNodeOfPredecessor.hasOutgoingConnectionTo(systemActivityNode) == false) {
                 
-                systemActivityNode.get('predecessorNodes').add(systemActivityNodeOfPredecessor);
-                systemActivityNodeOfPredecessor.get('successorNodes').add(systemActivityNode);
-                
-                var connection = new App.Diagram.Model.Definition.Connection();
-                connection.set('sourceNode', systemActivityNodeOfPredecessor);
-                connection.set('targetNode', systemActivityNode);
-                systemActivityNodeOfPredecessor.get('outgoingConnections').add(connection);
-                systemActivityNode.get('incomingConnections').add(connection);
+                var connection = new App.Diagram.Model.Definition.Connection({
+                    sourceNode: systemActivityNodeOfPredecessor,
+                    targetNode: systemActivityNode
+                });
             }
         }
         
