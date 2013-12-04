@@ -454,7 +454,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
             var count = cell.getHorizontalLaneCount();
             return {
                 fromTop: offset,
-                fromBottom: count - offset - 1
+                fromBottom: offset == -1 ? -1 : count - offset - 1
             };
         },
         
@@ -506,11 +506,11 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
             
             if (targetNodeColumn - sourceNodeColumn == 0 && targetNodeRow - sourceNodeRow == 1) {
                 // Straight connection to the node below
-                return { fromLeft: 0, fromRight: 0 };
+                return { fromLeft: -1, fromRight: -1 };
                 
             } else if (targetNodeColumn - sourceNodeColumn != 0 && targetNodeRow - sourceNodeRow == 1) {
                 // Not moving vertically
-                return { fromLeft: 0, fromRight: 0 };
+                return { fromLeft: -1, fromRight: -1 };
                 
             } else if (targetNodeRow - sourceNodeRow > 1) {
                 // Arriving from top
@@ -519,7 +519,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
                 var count = cell.getVerticalLaneCount();
                 return {
                     fromLeft: offset,
-                    fromRight: count - offset - 1
+                    fromRight: offset == -1 ? -1 : count - offset - 1
                 };
                 
             } else if (targetNodeRow - sourceNodeRow < 1) {
@@ -529,7 +529,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
                 var count = cell.getVerticalLaneCount();
                 return {
                     fromLeft: offset,
-                    fromRight: count - offset - 1
+                    fromRight: offset == -1 ? -1 : count - offset - 1
                 };
                 
             }
@@ -579,7 +579,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
             var count = cell.getHorizontalLaneCount();
             return {
                 fromTop: offset,
-                fromBottom: count - offset - 1
+                fromBottom: offset == -1 ? -1 : count - offset - 1
             };
         },
         
@@ -833,7 +833,6 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
         placeConnection: function (connection) {
             
             var indexLaneOfFirstHorizontalLine;
-            var gridColumnForVerticalLine;
             
             var firstHorizontalLineLength = connection.getFirstHorizontalLineLength();
             if (firstHorizontalLineLength != 0) {
@@ -841,21 +840,22 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
                 var gridColumnStart = connection.get('sourceNode').get('gridPosition').column;
                 var gridColumnEnd = gridColumnStart + firstHorizontalLineLength;
                 
-                gridColumnForVerticalLine = firstHorizontalLineLength > 0 ? gridColumnEnd - 1 : gridColumnEnd;
-                
                 if (this.getHeight() == gridRow) {
                     this.insertRow(gridRow);
                 }
                 
+                indexLaneOfFirstHorizontalLine
+                    = firstHorizontalLineLength > 0
+                        ? this.addHorizontalLaneToRight(gridRow)
+                        : this.addHorizontalLaneToLeft(gridRow);
+                
                 for ( var x = gridColumnStart; x != gridColumnEnd; firstHorizontalLineLength > 0 ? x++ : x-- ) {
                     
                     if (firstHorizontalLineLength > 0) {
-                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToRight(gridRow);
                         this.at(x).at(gridRow)
                             .get('connectionsTopToRight')
                             .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
                     } else {
-                        indexLaneOfFirstHorizontalLine = this.addHorizontalLaneToLeft(gridRow);
                         this.at(x).at(gridRow)
                             .get('connectionsTopToLeft')
                             .replaceIndex(indexLaneOfFirstHorizontalLine, connection);
@@ -864,6 +864,7 @@ Testrails.module('Diagram.Model.Definition', function (Definition, App, Backbone
             }
             
             var verticalLineLength = connection.getVerticalLineLength();
+            var gridColumnForVerticalLine = connection.getVerticalLaneColumn();
             if (verticalLineLength != 0 && gridColumnForVerticalLine != null) {
                 
                 var indexNewLane = verticalLineLength > 0
